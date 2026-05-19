@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>⚡ VikingFile Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ── Variables ───────────────────────────────────────────── */
+:root {
+  --bg:        #080810;
+  --surface:   #0f0f1a;
+  --surface2:  #161624;
+  --border:    #1e1e30;
+  --border2:   #2a2a3e;
+  --accent:    #f5a623;
+  --accent2:   #e05c2a;
+  --green:     #3dd68c;
+  --blue:      #4fa3e0;
+  --red:       #e05c5c;
+  --text:      #e4e0d5;
+  --muted:     #5a566e;
+  --muted2:    #8a86a0;
+  --font-d:    'Syne', sans-serif;
+  --font-m:    'Space Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-m);
+  font-size:13px;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Scanline noise ──────────────────────────────────────── */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+/* ── App shell ───────────────────────────────────────────── */
+.app{max-width:900px;margin:0 auto;padding:1.5rem 1.25rem 5rem}
+
+/* ── Header ──────────────────────────────────────────────── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:1.25rem;margin-bottom:2rem;
+  border-bottom:1px solid var(--border);
+  flex-wrap:wrap;gap:.75rem;
+}
+.logo{
+  font-family:var(--font-d);font-size:1.5rem;font-weight:800;
+  letter-spacing:-.02em;color:var(--accent);
+  display:flex;align-items:center;gap:.5rem;
+}
+.logo-sub{color:var(--muted2);font-size:.75rem;font-family:var(--font-m);font-weight:400;margin-left:.25rem;letter-spacing:.05em}
+.hash-badge{
+  display:flex;align-items:center;gap:.5rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:5px;padding:.3rem .75rem;
+  cursor:pointer;transition:border-color .2s;font-size:.7rem;
+}
+.hash-badge:hover{border-color:var(--accent)}
+.hash-badge .led{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+.hash-badge.on .led{background:var(--green);box-shadow:0 0 6px var(--green)}
+.hash-badge .htext{color:var(--muted2)}
+
+/* ── Nav tabs ────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.75rem}
+.tab{
+  background:none;border:none;color:var(--muted);
+  font-family:var(--font-m);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:.6rem 1rem;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .2s,border-color .2s;
+}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── Panels ──────────────────────────────────────────────── */
+.panel{display:none}.panel.active{display:block}
+
+/* ── Upload Zone ─────────────────────────────────────────── */
+.drop-zone{
+  border:2px dashed var(--border2);border-radius:10px;
+  padding:2.5rem 1.5rem;text-align:center;
+  cursor:pointer;position:relative;
+  transition:border-color .25s,background .25s;
+  margin-bottom:1.25rem;
+}
+.drop-zone.over{border-color:var(--accent);background:rgba(245,166,35,.04)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:2rem;margin-bottom:.6rem;display:block}
+.drop-zone h3{font-family:var(--font-d);font-size:1rem;font-weight:700;color:var(--text);margin-bottom:.3rem}
+.drop-zone p{color:var(--muted2);font-size:.72rem}
+.drop-zone .browse-hint{
+  display:inline-block;margin-top:.75rem;
+  border:1px solid var(--border2);border-radius:4px;
+  padding:.25rem .75rem;font-size:.7rem;color:var(--muted2);
+}
+
+/* ── URL Upload ──────────────────────────────────────────── */
+.section-label{
+  font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.6rem;
+}
+.url-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.url-row input{
+  flex:1;min-width:180px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:.55rem .85rem;
+  color:var(--text);font-family:var(--font-m);font-size:.78rem;
+  outline:none;transition:border-color .2s;
+}
+.url-row input:focus{border-color:var(--accent)}
+.url-row input::placeholder{color:var(--muted)}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{
+  background:var(--accent);color:#080810;
+  border:none;border-radius:6px;padding:.55rem 1.2rem;
+  font-family:var(--font-m);font-size:.75rem;font-weight:700;
+  cursor:pointer;transition:opacity .15s,transform .1s;
+  white-space:nowrap;letter-spacing:.02em;
+}
+.btn:hover{opacity:.85}.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-sm{padding:.3rem .7rem;font-size:.68rem;border-radius:4px}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted2)}
+.btn-ghost:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn-danger{background:transparent;border:1px solid rgba(224,92,92,.4);color:var(--red)}
+.btn-danger:hover{border-color:var(--red);background:rgba(224,92,92,.06)}
+.btn-green{background:var(--green);color:#080810}
+.btn-blue{background:transparent;border:1px solid rgba(79,163,224,.4);color:var(--blue)}
+.btn-blue:hover{border-color:var(--blue);background:rgba(79,163,224,.06)}
+
+/* ── Status Box ──────────────────────────────────────────── */
+#status-box{
+  display:none;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:1rem 1.2rem;margin-top:1rem;
+}
+#status-box.show{display:block}
+.status-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.status-fname{font-size:.78rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%}
+.status-pct{font-size:.78rem;color:var(--accent);font-weight:700}
+.progress-track{height:4px;background:var(--border2);border-radius:2px;overflow:hidden;margin-bottom:.6rem}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .3s linear}
+.status-meta{display:flex;gap:1.2rem;font-size:.68rem;color:var(--muted2)}
+.status-meta span{display:flex;align-items:center;gap:.3rem}
+
+/* ── File List ───────────────────────────────────────────── */
+.list-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;
+}
+.file-count{font-size:.7rem;color:var(--muted)}
+.file-grid{display:flex;flex-direction:column;gap:.5rem}
+.file-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:.75rem 1rem;
+  display:grid;grid-template-columns:auto 1fr auto;
+  align-items:center;gap:.75rem;
+  transition:border-color .2s;
+}
+.file-card:hover{border-color:var(--border2)}
+.file-type-icon{font-size:1.2rem;width:28px;text-align:center;flex-shrink:0}
+.file-info{min-width:0}
+.file-name{
+  font-size:.8rem;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  margin-bottom:.2rem;
+}
+.file-name input{
+  background:transparent;border:none;border-bottom:1px solid var(--accent);
+  color:var(--text);font-family:var(--font-m);font-size:.8rem;
+  outline:none;width:100%;padding:0;
+}
+.file-meta{font-size:.65rem;color:var(--muted);display:flex;gap:.75rem;flex-wrap:wrap}
+.file-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.empty-state .ei{font-size:2.5rem;margin-bottom:.75rem;opacity:.4}
+.empty-state p{font-size:.78rem}
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:1.5rem;right:1.5rem;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;padding:.65rem 1.1rem;
+  font-size:.75rem;color:var(--text);
+  transform:translateY(80px);opacity:0;
+  transition:transform .3s,opacity .3s;
+  z-index:1000;max-width:300px;
+}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:rgba(61,214,140,.4);color:var(--green)}
+#toast.error{border-color:rgba(224,92,92,.4);color:var(--red)}
+
+/* ── Modal ───────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(8,8,16,.85);
+  display:flex;align-items:center;justify-content:center;
+  z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:12px;padding:1.5rem;width:min(400px,90vw);
+}
+.modal h3{font-family:var(--font-d);font-size:1rem;font-weight:700;margin-bottom:.35rem;color:var(--text)}
+.modal p{font-size:.75rem;color:var(--muted2);margin-bottom:1.25rem}
+.modal input{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:.55rem .85rem;
+  color:var(--text);font-family:var(--font-m);font-size:.8rem;
+  outline:none;margin-bottom:1rem;
+}
+.modal input:focus{border-color:var(--accent)}
+.modal-btns{display:flex;gap:.5rem;justify-content:flex-end}
+
+/* ── Pagination ──────────────────────────────────────────── */
+.pagination{display:flex;gap:.4rem;align-items:center;justify-content:center;margin-top:1.25rem}
+.page-btn{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:4px;padding:.3rem .65rem;font-size:.7rem;
+  color:var(--muted2);cursor:pointer;font-family:var(--font-m);
+  transition:border-color .15s,color .15s;
+}
+.page-btn:hover,.page-btn.active{border-color:var(--accent);color:var(--accent)}
+.page-info{font-size:.7rem;color:var(--muted);padding:0 .25rem}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media(max-width:560px){
+  .file-card{grid-template-columns:auto 1fr;grid-template-rows:auto auto}
+  .file-actions{grid-column:2;justify-content:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      ⚡ VikingFile<span class="logo-sub">// MANAGER</span>
+    </div>
+    <div class="hash-badge" id="hashBadge" onclick="openHashModal()">
+      <div class="led" id="hashLed"></div>
+      <span class="htext" id="hashLabel">Set user hash</span>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('upload',this)">↑ Upload</button>
+    <button class="tab" onclick="switchTab('files',this)">⊞ My Files</button>
+    <button class="tab" onclick="switchTab('recent',this)">⏱ Recent</button>
+  </div>
+
+  <!-- UPLOAD PANEL -->
+  <div class="panel active" id="panel-upload">
+    <!-- Drop zone -->
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" multiple onchange="handleFileSelect(this.files)"/>
+      <span class="drop-icon">📂</span>
+      <h3>Drop files here</h3>
+      <p>Any size · Any format · No limits</p>
+      <span class="browse-hint">or click to browse</span>
+    </div>
+
+    <!-- URL upload -->
+    <div class="section-label">— or upload from URL</div>
+    <div class="url-row">
+      <input type="url" id="urlInput" placeholder="https://example.com/file.zip"/>
+      <input type="text" id="urlName" placeholder="filename (optional)" style="max-width:180px"/>
+      <button class="btn" onclick="uploadFromUrl()">Fetch &amp; Upload</button>
+    </div>
+
+    <!-- Status box -->
+    <div id="status-box">
+      <div class="status-top">
+        <span class="status-fname" id="statusName">—</span>
+        <span class="status-pct" id="statusPct">0%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="status-meta">
+        <span>⚡ <span id="statusSpeed">—</span></span>
+        <span>⏳ <span id="statusEta">—</span></span>
+        <span>📦 <span id="statusSize">—</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILES PANEL -->
+  <div class="panel" id="panel-files">
+    <div class="list-header">
+      <span class="file-count" id="fileCount">Loading…</span>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-ghost btn-sm" onclick="loadFiles()">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="file-grid" id="fileGrid">
+      <div class="empty-state">
+        <div class="ei">🗂</div>
+        <p>Set your user hash to load files</p>
+      </div>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <!-- RECENT PANEL -->
+  <div class="panel" id="panel-recent">
+    <div class="list-header">
+      <span class="file-count" id="recentCount">—</span>
+      <button class="btn btn-danger btn-sm" onclick="clearRecent()">Clear history</button>
+    </div>
+    <div class="file-grid" id="recentGrid"></div>
+  </div>
+
+</div>
+
+<!-- Hash Modal -->
+<div class="modal-overlay" id="hashModal">
+  <div class="modal">
+    <h3>🔑 User Hash</h3>
+    <p>Your VikingFile account hash — stored only in this browser, never sent anywhere else.</p>
+    <input type="text" id="hashInput" placeholder="Paste your VikingFile hash…"/>
+    <div class="modal-btns">
+      <button class="btn btn-danger btn-sm" onclick="clearHash()">Remove</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeHashModal()">Cancel</button>
+      <button class="btn btn-sm" onclick="saveHash()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmMsg">This action cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════
+   CONSTANTS
+════════════════════════════════════════════ */
+const VF_API   = 'https://vikingfile.com/api';
+const VF_BASE  = 'https://vikingfile.com';
+const LS_HASH  = 'vf_user_hash';
+const LS_HIST  = 'vf_recent_uploads';
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+let currentPage   = 1;
+let maxPages      = 1;
+let uploading     = false;
+let confirmCb     = null;
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+(function init() {
+  // Drag-over styling on drop zone
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    handleFileSelect(e.dataTransfer.files);
+  });
+  updateHashUI();
+  renderRecent();
+})();
+
+/* ════════════════════════════════════════════
+   TAB SWITCHING
+════════════════════════════════════════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'files') loadFiles();
+  if (name === 'recent') renderRecent();
+}
+
+/* ════════════════════════════════════════════
+   HASH MANAGEMENT
+════════════════════════════════════════════ */
+function getHash()  { return localStorage.getItem(LS_HASH) || ''; }
+function saveHash() {
+  const v = document.getElementById('hashInput').value.trim();
+  if (!v) { toast('Enter a valid hash', 'error'); return; }
+  localStorage.setItem(LS_HASH, v);
+  updateHashUI(); closeHashModal();
+  toast('Hash saved ✓', 'success');
+}
+function clearHash() {
+  localStorage.removeItem(LS_HASH);
+  updateHashUI(); closeHashModal();
+  toast('Hash removed');
+}
+function updateHashUI() {
+  const h = getHash();
+  const badge = document.getElementById('hashBadge');
+  const led   = document.getElementById('hashLed');
+  const label = document.getElementById('hashLabel');
+  if (h) {
+    badge.classList.add('on');
+    led.title = 'Connected';
+    label.textContent = h.slice(0,4) + '●●●●' + h.slice(-4);
+  } else {
+    badge.classList.remove('on');
+    label.textContent = 'Set user hash';
+  }
+}
+function openHashModal() {
+  document.getElementById('hashInput').value = getHash();
+  document.getElementById('hashModal').classList.add('open');
+}
+function closeHashModal() { document.getElementById('hashModal').classList.remove('open'); }
+
+/* ════════════════════════════════════════════
+   FILE TYPE EMOJI
+════════════════════════════════════════════ */
+function fileEmoji(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  const map = {
+    mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',webm:'🎬',
+    mp3:'🎵',flac:'🎵',wav:'🎵',aac:'🎵',ogg:'🎵',
+    zip:'🗜',rar:'🗜','7z':'🗜',tar:'🗜',gz:'🗜',
+    jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',webp:'🖼',svg:'🖼',
+    pdf:'📄',doc:'📝',docx:'📝',txt:'📝',md:'📝',
+    xls:'📊',xlsx:'📊',csv:'📊',
+    exe:'⚙️',apk:'📱',iso:'💿',
+    js:'💻',py:'💻',html:'💻',css:'💻',ts:'💻',
+  };
+  return map[ext] || '📁';
+}
+
+/* ════════════════════════════════════════════
+   FORMAT HELPERS
+════════════════════════════════════════════ */
+function fmtSize(bytes) {
+  if (!bytes) return '—';
+  const u = ['B','KB','MB','GB','TB'];
+  let i = 0, b = bytes;
+  while (b >= 1024 && i < u.length-1) { b /= 1024; i++; }
+  return b.toFixed(i ? 1 : 0) + ' ' + u[i];
+}
+function fmtSpeed(bps) {
+  return fmtSize(bps) + '/s';
+}
+function fmtEta(sec) {
+  if (!isFinite(sec) || sec < 0) return '—';
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return (m > 0 ? m + 'm ' : '') + s + 's';
+}
+
+/* ════════════════════════════════════════════
+   STATUS BOX
+════════════════════════════════════════════ */
+function showStatus(name) {
+  const box = document.getElementById('status-box');
+  box.classList.add('show');
+  document.getElementById('statusName').textContent = name;
+  setProgress(0, 0, 0, name.length);
+}
+function setProgress(pct, speed, eta, totalBytes) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('statusPct').textContent = pct.toFixed(1) + '%';
+  document.getElementById('statusSpeed').textContent = speed ? fmtSpeed(speed) : '—';
+  document.getElementById('statusEta').textContent  = eta  ? fmtEta(eta)    : '—';
+  document.getElementById('statusSize').textContent = totalBytes ? fmtSize(totalBytes) : '—';
+}
+function hideStatus() {
+  setTimeout(() => document.getElementById('status-box').classList.remove('show'), 2500);
+}
+
+/* ════════════════════════════════════════════
+   FILE UPLOAD (legacy single-part for simplicity + multipart for large)
+════════════════════════════════════════════ */
+async function handleFileSelect(files) {
+  if (!files || files.length === 0) return; // Guard: no files selected
+  for (const file of files) await uploadFile(file);
+}
+
+async function uploadFile(file) {
+  if (uploading) { toast('Already uploading — please wait', 'error'); return; }
+  uploading = true;
+  showStatus(file.name);
+
+  try {
+    /* ── Step 1: get upload server ───────────────────────── */
+    const serverRes = await fetch(VF_API + '/get-server');
+    if (!serverRes.ok) throw new Error('Could not reach VikingFile server (HTTP ' + serverRes.status + ')');
+    const serverData = await serverRes.json();
+    const server = serverData.server;
+    if (!server) throw new Error('No server returned from API. Response: ' + JSON.stringify(serverData));
+
+    /* ── Step 2: XHR for progress ────────────────────────── */
+    const result = await new Promise((resolve, reject) => {
+      const fd = new FormData();
+      fd.append('file', file);            // Required: the file binary
+      fd.append('user', getHash());       // Required: empty string = anonymous
+
+      const xhr = new XMLHttpRequest();
+      let startTime = Date.now();
+
+      xhr.upload.onprogress = e => {
+        if (!e.lengthComputable) return;
+        const pct   = (e.loaded / e.total) * 100;
+        const elapsed = (Date.now() - startTime) / 1000;
+        const speed = elapsed > 0 ? e.loaded / elapsed : 0;
+        const remaining = speed > 0 ? (e.total - e.loaded) / speed : 0;
+        setProgress(pct, speed, remaining, e.total);
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch(err) { reject(new Error('Invalid JSON response: ' + xhr.responseText.slice(0,120))); }
+        } else {
+          reject(new Error('Upload failed — HTTP ' + xhr.status + ': ' + xhr.responseText.slice(0,120)));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload. Check CORS or connection.'));
+      xhr.open('POST', server);
+      xhr.send(fd);
+    });
+
+    /* ── Step 3: handle result ───────────────────────────── */
+    if (!result.url) throw new Error('No URL in response: ' + JSON.stringify(result));
+
+    setProgress(100, 0, 0, file.size);
+    saveToRecent({ name: result.name || file.name, url: result.url, hash: result.hash, size: file.size, created: new Date().toLocaleString() });
+    toast('✓ Uploaded → ' + result.url, 'success');
+    renderRecent();
+
+  } catch(err) {
+    console.error('[VikingFile Upload Error]', err); // Log full error for debugging
+    toast('Upload failed: ' + err.message, 'error');
+    setProgress(0, 0, 0, 0);
+  } finally {
+    uploading = false;
+    hideStatus();
+    document.getElementById('fileInput').value = ''; // Reset input so same file can be re-selected
+  }
+}
+
+/* ════════════════════════════════════════════
+   URL UPLOAD
+════════════════════════════════════════════ */
+async function uploadFromUrl() {
+  const url  = document.getElementById('urlInput').value.trim();
+  const name = document.getElementById('urlName').value.trim();
+
+  if (!url) { toast('Paste a URL first', 'error'); return; }
+
+  // Basic URL validation before hitting the API
+  try { new URL(url); } catch(_) { toast('Invalid URL format', 'error'); return; }
+  if (uploading) { toast('Already uploading — please wait', 'error'); return; }
+
+  uploading = true;
+  showStatus(name || url.split('/').pop() || 'remote file');
+
+  try {
+    /* ── Get upload server ───────────────────────────────── */
+    const serverRes = await fetch(VF_API + '/get-server');
+    if (!serverRes.ok) throw new Error('Server fetch failed — HTTP ' + serverRes.status);
+    const { server } = await serverRes.json();
+    if (!server) throw new Error('No server URL returned');
+
+    /* ── POST remote link ────────────────────────────────── */
+    // Simulate indeterminate progress (server fetches remotely, no upload progress available)
+    let fakeP = 0;
+    const ticker = setInterval(() => {
+      fakeP = Math.min(fakeP + 2, 90); // Cap at 90% until real response
+      document.getElementById('progressFill').style.width = fakeP + '%';
+      document.getElementById('statusPct').textContent = fakeP + '%';
+    }, 400);
+
+    const fd = new FormData();
+    fd.append('link', url);           // Required: remote URL
+    fd.append('user', getHash());     // Required: user hash or empty
+    if (name) fd.append('name', name); // Optional: override filename
+
+    const res = await fetch(server, { method: 'POST', body: fd });
+    clearInterval(ticker);
+
+    if (!res.ok) throw new Error('Remote upload failed — HTTP ' + res.status);
+    const result = await res.json();
+    if (!result.url) throw new Error('No URL in response: ' + JSON.stringify(result));
+
+    setProgress(100, 0, 0, result.size || 0);
+    saveToRecent({ name: result.name || name || 'remote file', url: result.url, hash: result.hash, size: result.size, created: new Date().toLocaleString() });
+    toast('✓ Remote file uploaded!', 'success');
+    document.getElementById('urlInput').value = '';
+    document.getElementById('urlName').value  = '';
+    renderRecent();
+
+  } catch(err) {
+    console.error('[VikingFile URL Upload Error]', err);
+    toast('URL upload failed: ' + err.message, 'error');
+  } finally {
+    uploading = false;
+    hideStatus();
+  }
+}
+
+/* ════════════════════════════════════════════
+   LIST FILES (My Files tab)
+════════════════════════════════════════════ */
+async function loadFiles(page) {
+  page = page || currentPage;
+  const hash = getHash();
+
+  const grid  = document.getElementById('fileGrid');
+  const count = document.getElementById('fileCount');
+  count.textContent = 'Loading…';
+
+  if (!hash) {
+    grid.innerHTML = '<div class="empty-state"><div class="ei">🔑</div><p>Set your user hash to see files</p></div>';
+    count.textContent = '—';
+    return;
+  }
+
+  try {
+    const fd = new FormData();
+    fd.append('user', hash);  // Required by API
+    fd.append('page', page);  // Required: 1-based page number
+
+    const res = await fetch(VF_API + '/list-files', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const data = await res.json();
+
+    // Guard: API might return error object
+    if (data.error && data.error !== 'success') throw new Error(data.error);
+
+    currentPage = data.currentPage || page;
+    maxPages    = data.maxPages    || 1;
+    const files = data.files       || [];
+
+    count.textContent = files.length + ' file' + (files.length !== 1 ? 's' : '') + ' · page ' + currentPage + '/' + maxPages;
+
+    if (files.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><div class="ei">🗂</div><p>No files found</p></div>';
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    grid.innerHTML = files.map(f => fileCardHTML(f, 'account')).join('');
+    renderPagination();
+
+  } catch(err) {
+    console.error('[VikingFile List Error]', { hash: hash.slice(0,4)+'…', page, error: err.message });
+    grid.innerHTML = '<div class="empty-state"><div class="ei">⚠️</div><p>Load failed: ' + err.message + '</p></div>';
+    count.textContent = 'Error';
+  }
+}
+
+function renderPagination() {
+  const pg = document.getElementById('pagination');
+  if (maxPages <= 1) { pg.innerHTML = ''; return; }
+
+  let html = '';
+  if (currentPage > 1) html += `<button class="page-btn" onclick="loadFiles(${currentPage-1})">‹ Prev</button>`;
+  html += `<span class="page-info">${currentPage} / ${maxPages}</span>`;
+  if (currentPage < maxPages) html += `<button class="page-btn" onclick="loadFiles(${currentPage+1})">Next ›</button>`;
+  pg.innerHTML = html;
+}
+
+/* ════════════════════════════════════════════
+   FILE CARD HTML
+════════════════════════════════════════════ */
+function fileCardHTML(f, source) {
+  const url  = f.url  || (VF_BASE + '/f/' + f.hash);
+  const safe = JSON.stringify(f).replace(/'/g, "\\'"); // Escape for inline onclick
+
+  return `
+  <div class="file-card" id="fc-${f.hash}">
+    <div class="file-type-icon">${fileEmoji(f.name)}</div>
+    <div class="file-info">
+      <div class="file-name" id="fn-${f.hash}">${escHtml(f.name)}</div>
+      <div class="file-meta">
+        <span>📦 ${fmtSize(f.size)}</span>
+        ${f.downloads !== undefined ? `<span>↓ ${f.downloads} dl</span>` : ''}
+        ${f.created ? `<span>🕐 ${f.created}</span>` : ''}
+        <a href="${url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">${url}</a>
+      </div>
+    </div>
+    <div class="file-actions">
+      <button class="btn btn-blue btn-sm" onclick="copyLink('${url}')">Copy</button>
+      ${source === 'account' ? `
+      <button class="btn btn-ghost btn-sm" onclick="startRename('${f.hash}','${escAttr(f.name)}')">Rename</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDelete('${f.hash}','${escAttr(f.name)}')">Del</button>
+      ` : ''}
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   RENAME
+════════════════════════════════════════════ */
+function startRename(hash, oldName) {
+  const el = document.getElementById('fn-' + hash);
+  if (!el) return;
+  el.innerHTML = `
+    <input type="text" value="${escAttr(oldName)}" id="ri-${hash}"
+      onkeydown="if(event.key==='Enter')doRename('${hash}');if(event.key==='Escape')cancelRename('${hash}','${escAttr(oldName)}')"
+    />`;
+  const inp = document.getElementById('ri-' + hash);
+  inp.focus(); inp.select();
+}
+
+function cancelRename(hash, name) {
+  const el = document.getElementById('fn-' + hash);
+  if (el) el.innerHTML = escHtml(name);
+}
+
+async function doRename(hash) {
+  const inp = document.getElementById('ri-' + hash);
+  if (!inp) return;
+  const newName = inp.value.trim();
+  if (!newName) { cancelRename(hash, inp.defaultValue); return; }
+
+  const hash_user = getHash();
+  if (!hash_user) { toast('Set your hash first', 'error'); return; }
+
+  try {
+    const fd = new FormData();
+    fd.append('hash',     hash);       // File hash to rename
+    fd.append('user',     hash_user);  // Account hash for auth
+    fd.append('filename', newName);    // New filename
+
+    const res = await fetch(VF_API + '/rename-file', { method:'POST', body: fd });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error && data.error !== 'success') throw new Error(data.error);
+
+    document.getElementById('fn-' + hash).innerHTML = escHtml(newName);
+    toast('Renamed ✓', 'success');
+    // Update in recent history too if present
+    updateRecentName(hash, newName);
+
+  } catch(err) {
+    console.error('[VikingFile Rename Error]', { hash, newName, error: err.message });
+    toast('Rename failed: ' + err.message, 'error');
+    cancelRename(hash, inp.defaultValue);
+  }
+}
+
+/* ════════════════════════════════════════════
+   DELETE
+════════════════════════════════════════════ */
+function confirmDelete(hash, name) {
+  document.getElementById('confirmTitle').textContent = 'Delete file?';
+  document.getElementById('confirmMsg').textContent   = '"' + name + '" will be permanently deleted.';
+  document.getElementById('confirmOk').onclick = () => { closeConfirm(); doDelete(hash); };
+  document.getElementById('confirmModal').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirmModal').classList.remove('open'); }
+
+async function doDelete(hash) {
+  const hash_user = getHash();
+  if (!hash_user) { toast('Set your hash first', 'error'); return; }
+
+  try {
+    const fd = new FormData();
+    fd.append('hash', hash);       // File to delete
+    fd.append('user', hash_user);  // Account auth
+
+    const res = await fetch(VF_API + '/delete-file', { method:'POST', body: fd });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error && data.error !== 'success') throw new Error(data.error);
+
+    // Remove card from DOM instantly
+    const card = document.getElementById('fc-' + hash);
+    if (card) card.remove();
+
+    // Remove from recent history as well
+    removeFromRecent(hash);
+    renderRecent();
+    toast('Deleted ✓', 'success');
+
+  } catch(err) {
+    console.error('[VikingFile Delete Error]', { hash, error: err.message });
+    toast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+/* ════════════════════════════════════════════
+   RECENT UPLOADS (localStorage)
+════════════════════════════════════════════ */
+function getRecent() {
+  try { return JSON.parse(localStorage.getItem(LS_HIST) || '[]'); }
+  catch(e) { console.error('[VikingFile] Corrupt recent history, resetting', e); return []; }
+}
+function saveToRecent(entry) {
+  const list = getRecent();
+  // Dedup by hash — move to top if already exists
+  const filtered = list.filter(x => x.hash !== entry.hash);
+  filtered.unshift(entry); // newest first
+  // Keep max 50 entries
+  localStorage.setItem(LS_HIST, JSON.stringify(filtered.slice(0, 50)));
+}
+function updateRecentName(hash, newName) {
+  const list = getRecent().map(x => x.hash === hash ? {...x, name: newName} : x);
+  localStorage.setItem(LS_HIST, JSON.stringify(list));
+}
+function removeFromRecent(hash) {
+  const list = getRecent().filter(x => x.hash !== hash);
+  localStorage.setItem(LS_HIST, JSON.stringify(list));
+}
+function clearRecent() {
+  localStorage.removeItem(LS_HIST);
+  renderRecent();
+  toast('History cleared');
+}
+function renderRecent() {
+  const list  = getRecent();
+  const grid  = document.getElementById('recentGrid');
+  const count = document.getElementById('recentCount');
+  count.textContent = list.length + ' recent upload' + (list.length !== 1 ? 's' : '');
+  if (list.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="ei">⏱</div><p>No uploads yet</p></div>';
+    return;
+  }
+  grid.innerHTML = list.map(f => fileCardHTML(f, 'recent')).join('');
+}
+
+/* ════════════════════════════════════════════
+   COPY LINK
+════════════════════════════════════════════ */
+function copyLink(url) {
+  navigator.clipboard.writeText(url)
+    .then(() => toast('Link copied ✓', 'success'))
+    .catch(() => {
+      // Fallback for browsers without clipboard API (e.g. HTTP, older Safari)
+      const ta = document.createElement('textarea');
+      ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast('Link copied ✓', 'success');
+    });
+}
+
+/* ════════════════════════════════════════════
+   TOAST NOTIFICATIONS
+════════════════════════════════════════════ */
+let toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3500);
+}
+
+/* ════════════════════════════════════════════
+   ESCAPE HELPERS (XSS prevention)
+════════════════════════════════════════════ */
+function escHtml(s) {
+  // Prevent XSS when inserting filenames into innerHTML
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  // Safe for use inside single-quoted HTML attributes (onclick='...')
+  return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+}
+
+/* ── Close modals on overlay click ──────── */
+document.getElementById('hashModal').addEventListener('click', function(e) {
+  if (e.target === this) closeHashModal();
+});
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirm();
+});
+
+/* ── Enter key on hash input ─────────────── */
+document.getElementById('hashInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveHash();
+});
+</script>
+</body>
+</html>
