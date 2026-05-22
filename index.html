@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
     <title>NexusView // AMOLED Immersive Hub</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
         :root {
             --bg-amoled: #000000;
@@ -203,7 +204,8 @@
             justify-content: flex-start;
         }
         
-        body.pdf-active .pdf-render-canvas-stream:has(.pdf-page-canvas-node:nth-child(1):last-child) {
+        body.pdf-active .pdf-render-canvas-stream:has(.pdf-page-canvas-node:nth-child(1):last-child),
+        body.pdf-active .pdf-render-canvas-stream:has(.docx-content-wrapper) {
             justify-content: center;
         }
 
@@ -220,6 +222,26 @@
             transform: translateZ(0);
             backface-visibility: hidden;
         }
+
+        /* Comprehensive Stylized Rendering Node wrapper for Docx Output */
+        .docx-content-wrapper {
+            width: 100%;
+            max-width: 800px;
+            background: #ffffff;
+            color: #111111;
+            padding: 40px 32px;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: "Calibri", "Arial", sans-serif;
+            line-height: 1.6;
+        }
+
+        .docx-content-wrapper p { margin-bottom: 14px; font-size: 16px; }
+        .docx-content-wrapper h1, .docx-content-wrapper h2, .docx-content-wrapper h3 { margin: 20px 0 12px 0; color: #003366; }
+        .docx-content-wrapper table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+        .docx-content-wrapper table, .docx-content-wrapper th, .docx-content-wrapper td { border: 1px solid #999; padding: 8px; }
 
         /* Top-Right 3-Dot Interaction Menu Layout */
         .action-hub-container {
@@ -363,8 +385,8 @@
             <p style="font-size: 13px; color: var(--text-muted);">AMOLED glassmorphic layout for immersive mobile reading.</p>
             
             <div class="file-input-container">
-                <input type="file" id="pdf-file-handler" class="real-input" accept="application/pdf" />
-                <button class="glass-btn">Open Local PDF</button>
+                <input type="file" id="pdf-file-handler" class="real-input" accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <button class="glass-btn">Open Local Document</button>
             </div>
             <div id="processing-loader" class="hidden">
                 <div class="spinner"></div>
@@ -449,10 +471,53 @@
             appHeader.appendChild(menuHubSystem);
         });
 
-        // Pipeline Core Parser Engine Logic
-        async function processPDFBlob(fileBlob, fileName, saveToHistory = true) {
+        // Adaptive Routing Subsystem: Maps execution algorithms depending on mime signatures
+        async function processRouterMapping(fileBlob, fileName, saveToHistory = true) {
             if (!fileBlob) return;
-            
+
+            if (fileName.endsWith('.docx')) {
+                renderDocxEngine(fileBlob, fileName, saveToHistory);
+            } else {
+                renderPdfEngine(fileBlob, fileName, saveToHistory);
+            }
+        }
+
+        // Module Alpha: Native Client Side DOCX Parsing Engine
+        async function renderDocxEngine(fileBlob, fileName, saveToHistory) {
+            loader.classList.remove('hidden');
+            viewport.innerHTML = '';
+
+            const fileReader = new FileReader();
+            fileReader.onload = function(event) {
+                const arrayBuffer = event.target.result;
+                
+                mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
+                    .then(function(result) {
+                        loader.classList.add('hidden');
+                        uploadHub.classList.add('hidden');
+                        document.body.classList.add('pdf-active');
+                        optClose.classList.remove('hidden');
+
+                        // Move 3-dot container to document body root for independent layer execution
+                        document.body.appendChild(menuHubSystem);
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'docx-content-wrapper';
+                        wrapper.innerHTML = result.value;
+                        viewport.appendChild(wrapper);
+
+                        if(saveToHistory) storeInIndexedDB(fileBlob, fileName);
+                    })
+                    .catch(function(err) {
+                        alert("DOCX core layout generation error: " + err.message);
+                        loader.classList.add('hidden');
+                    });
+            };
+            fileReader.readAsArrayBuffer(fileBlob);
+        }
+
+        // Module Beta: Core Canvas Vector Generation Engine (PDF)
+        async function renderPdfEngine(fileBlob, fileName, saveToHistory) {
             loader.classList.remove('hidden');
             viewport.innerHTML = '';
 
@@ -501,7 +566,7 @@
 
         fileInput.addEventListener('change', (e) => {
             if(e.target.files.length > 0) {
-                processPDFBlob(e.target.files[0], e.target.files[0].name, true);
+                processRouterMapping(e.target.files[0], e.target.files[0].name, true);
             }
         });
 
@@ -545,7 +610,7 @@
                             el.className = 'history-item';
                             el.textContent = item.name;
                             el.addEventListener('click', () => {
-                                processPDFBlob(item.binaryData, item.name, false);
+                                processRouterMapping(item.binaryData, item.name, false);
                             });
                             historyRenderRoot.appendChild(el);
                         });
