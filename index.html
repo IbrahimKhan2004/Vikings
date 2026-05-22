@@ -227,10 +227,8 @@
             bottom: 24px;
             right: 24px;
             z-index: 400;
-            display: none;
+            display: block;
         }
-
-        body.pdf-active .action-hub-container { display: block; }
 
         .trigger-fab {
             width: 52px;
@@ -448,7 +446,7 @@
                         
                         const deviceScreenWidth = window.innerWidth;
                         const dynamicScale = deviceScreenWidth / baseViewport.width;
-                        const optimizedViewport = page.getViewport({ scale: Math.max(dynamicScale, 1.5) });
+                        const optimizedViewport = page.getViewport({ scale: Math.max(dynamicScale, 1.2) });
 
                         const canvas = document.createElement('canvas');
                         canvas.className = 'pdf-page-canvas-node';
