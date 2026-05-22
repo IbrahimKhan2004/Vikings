@@ -221,36 +221,50 @@
             backface-visibility: hidden;
         }
 
-        /* 3-Dot Floating Context Overlay System */
+        /* Top-Right 3-Dot Interaction Menu Layout */
         .action-hub-container {
+            position: relative;
+            z-index: 400;
+        }
+
+        /* Trigger Header Viewport Toggle System */
+        body.pdf-active .action-hub-container {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            z-index: 400;
-            display: block;
         }
 
         .trigger-fab {
-            width: 52px;
-            height: 52px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
+            background: transparent;
             color: var(--text-main);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .trigger-fab:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        body.pdf-active .trigger-fab {
+            width: 52px;
+            height: 52px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
             box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            transition: var(--transition-smooth);
         }
 
         /* Floating Flyout Sheet */
         .action-context-menu {
             position: absolute;
-            bottom: 64px;
+            top: 48px;
             right: 0;
             background: rgba(15, 18, 25, 0.95);
             backdrop-filter: blur(20px);
@@ -263,10 +277,16 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            transform: scale(0.9) translateY(10px);
+            transform: scale(0.9) translateY(-10px);
             opacity: 0;
             pointer-events: none;
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        body.pdf-active .action-context-menu {
+            top: auto;
+            bottom: 64px;
+            transform: scale(0.9) translateY(10px);
         }
 
         .action-context-menu.active {
@@ -312,6 +332,22 @@
             <div class="logo-cube">N</div>
             <h1>NexusView</h1>
         </div>
+        
+        <div class="action-hub-container" id="menu-hub-system">
+            <div class="action-context-menu" id="flyout-menu-list">
+                <button class="menu-opt-btn" id="opt-trigger-history">
+                    <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+                    View Recents
+                </button>
+                <button class="menu-opt-btn danger-action hidden" id="opt-trigger-close">
+                    <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    Close Document
+                </button>
+            </div>
+            <div class="trigger-fab" id="master-menu-fab" title="Expand Menu Options">
+                <svg style="width:22px;height:22px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            </div>
+        </div>
     </header>
 
     <div class="app-workspace">
@@ -339,22 +375,6 @@
         <div class="pdf-render-canvas-stream" id="stream-viewport"></div>
     </div>
 
-    <div class="action-hub-container" id="menu-hub-system">
-        <div class="action-context-menu" id="flyout-menu-list">
-            <button class="menu-opt-btn" id="opt-trigger-history">
-                <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
-                View Recents
-            </button>
-            <button class="menu-opt-btn danger-action" id="opt-trigger-close">
-                <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                Close Document
-            </button>
-        </div>
-        <div class="trigger-fab" id="master-menu-fab" title="Expand Menu Options">
-            <svg style="width:22px;height:22px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-        </div>
-    </div>
-
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -370,6 +390,8 @@
         const flyoutMenu = document.getElementById('flyout-menu-list');
         const optHistory = document.getElementById('opt-trigger-history');
         const optClose = document.getElementById('opt-trigger-close');
+        const menuHubSystem = document.getElementById('menu-hub-system');
+        const appHeader = document.getElementById('app-header');
 
         let db = null;
         // Fix: Explicitly structured database initialization matching W3C specification framework
@@ -421,6 +443,10 @@
             viewport.innerHTML = '';
             fileInput.value = '';
             flyoutMenu.classList.remove('active');
+            optClose.classList.add('hidden'); // Hide close option again on dashboard
+            
+            // Return 3-dot component back into header stack
+            appHeader.appendChild(menuHubSystem);
         });
 
         // Pipeline Core Parser Engine Logic
@@ -439,6 +465,10 @@
                     loader.classList.add('hidden');
                     uploadHub.classList.add('hidden');
                     document.body.classList.add('pdf-active');
+                    optClose.classList.remove('hidden'); // Show close file button safely now
+
+                    // Move 3-dot container to document body root for independent layer execution
+                    document.body.appendChild(menuHubSystem);
 
                     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                         const page = await pdf.getPage(pageNum);
