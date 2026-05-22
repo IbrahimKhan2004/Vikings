@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusView // Premium Static PDF Hub</title>
+    <title>NexusView // Premium Mobile PDF Hub</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         :root {
-            /* Material 3 Dark Theme Palette */
             --bg-surface: #0e1116;
             --bg-container: #161b22;
             --bg-elevation-1: #21262d;
@@ -26,21 +26,19 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-surface);
             color: var(--text-primary);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            -webkit-font-smoothing: antialiased;
         }
 
-        /* Top Application Bar */
         header {
             background-color: var(--bg-container);
             border-bottom: 1px solid var(--border-muted);
-            padding: 12px 24px;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -51,77 +49,72 @@
         .brand-zone {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .brand-logo {
             background: linear-gradient(135deg, var(--primary), #1f6feb);
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 14px;
+            font-size: 12px;
             color: #ffffff;
-            letter-spacing: -1px;
         }
 
         h1 {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
-            letter-spacing: -0.2px;
         }
 
-        .meta-status {
-            font-size: 12px;
-            background-color: var(--bg-elevation-1);
-            color: var(--text-secondary);
-            padding: 4px 10px;
-            border-radius: 20px;
-            border: 1px solid var(--border-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            background-color: #56d364;
-            border-radius: 50%;
-        }
-
-        /* Layout Main Grid */
+        /* Layout Grid - Responsive across devices */
         .workspace {
             display: flex;
+            flex-direction: column; /* Mobile first: Top to Bottom */
             flex-grow: 1;
             height: calc(100vh - 64px);
             position: relative;
         }
 
-        /* Controls / File Panel */
+        @media (min-width: 768px) {
+            .workspace {
+                flex-direction: row; /* Desktop: Left to Right */
+            }
+        }
+
+        /* Controls Panel */
         .control-panel {
-            width: 320px;
+            width: 100%;
             background-color: var(--bg-container);
-            border-right: 1px solid var(--border-muted);
-            padding: 24px;
+            border-bottom: 1px solid var(--border-muted);
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 12px;
             flex-shrink: 0;
         }
 
+        @media (min-width: 768px) {
+            .control-panel {
+                width: 320px;
+                border-bottom: none;
+                border-right: 1px solid var(--border-muted);
+                padding: 24px;
+                gap: 20px;
+            }
+        }
+
         .panel-title {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--text-secondary);
             font-weight: 700;
         }
 
-        /* Action Buttons & Custom Inputs */
         .file-selector-wrapper {
             position: relative;
             width: 100%;
@@ -150,155 +143,120 @@
             padding: 12px 20px;
             border-radius: 8px;
             transition: var(--transition-smooth);
-            text-align: center;
             border: none;
             width: 100%;
         }
 
-        .file-selector-wrapper:hover .custom-upload-trigger {
-            background-color: var(--primary-hover);
-            box-shadow: 0 0 16px rgba(88, 166, 255, 0.2);
-        }
-
-        /* Tracking Active Files */
+        /* Active Manifest Card */
         .file-card {
             background-color: var(--bg-elevation-1);
             border: 1px solid var(--border-muted);
             border-radius: 8px;
-            padding: 16px;
+            padding: 12px;
             display: flex;
-            flex-direction: column;
-            gap: 12px;
-            transition: var(--transition-smooth);
+            align-items: center;
+            justify-content: space-between;
         }
 
         .file-meta-header {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 12px;
+            overflow: hidden;
+            width: 100%;
         }
 
         .pdf-icon-box {
             background-color: rgba(248, 81, 73, 0.1);
             border-radius: 6px;
-            padding: 8px;
+            padding: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
         }
 
         .pdf-icon-box svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             fill: var(--accent-error);
         }
 
         .file-details {
             overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            width: 100%;
         }
 
         .file-name-text {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--text-primary);
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 2px;
-        }
-
-        .file-size-text {
-            font-size: 12px;
-            color: var(--text-secondary);
         }
 
         /* Viewport Canvas Space */
         .viewport-space {
             flex-grow: 1;
             background-color: var(--bg-surface);
-            padding: 24px;
+            padding: 12px;
+            overflow-y: auto; /* Scrollable for multi-pages */
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            position: relative;
+            gap: 16px;
         }
 
-        /* Empty / Dropzone Interactive State */
+        /* Landing Dropzone style */
         .dropzone-container {
             border: 2px dashed var(--border-muted);
             background-color: var(--bg-container);
             border-radius: 12px;
             width: 100%;
             height: 100%;
+            min-height: 250px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 16px;
-            transition: var(--transition-smooth);
-            padding: 40px;
+            gap: 12px;
+            padding: 24px;
             text-align: center;
         }
 
-        .dropzone-container.drag-over {
-            border-color: var(--primary);
-            background-color: rgba(88, 166, 255, 0.03);
-            transform: scale(0.995);
-        }
-
-        .dropzone-icon {
-            width: 64px;
-            height: 64px;
-            background-color: var(--bg-elevation-1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--border-muted);
-            margin-bottom: 8px;
-        }
-
-        .dropzone-icon svg {
-            width: 28px;
-            height: 28px;
-            fill: var(--text-secondary);
-            transition: var(--transition-smooth);
-        }
-
-        .dropzone-container.drag-over .dropzone-icon svg {
-            fill: var(--primary);
-            transform: translateY(-2px);
-        }
-
         .dropzone-main-text {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
-            color: var(--text-primary);
         }
 
         .dropzone-sub-text {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-secondary);
-            max-width: 280px;
-            line-height: 1.5;
+            max-width: 260px;
         }
 
-        /* Active PDF Iframe Layer */
-        .pdf-frame-embed {
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-            background-color: #525659; /* Matches Chrome's internal PDF viewport background */
-            display: none;
+        /* Custom PDF Canvas Viewer */
+        .pdf-page-canvas {
+            max-width: 100%;
+            height: auto !important;
+            background-color: white;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            border-radius: 4px;
         }
 
-        /* Helper Utilities */
-        .hidden {
-            display: none !important;
+        .hidden { display: none !important; }
+        
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid var(--border-muted);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 0.8s linear infinite;
         }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -308,130 +266,114 @@
             <div class="brand-logo">N</div>
             <h1>NexusView</h1>
         </div>
-        <div class="meta-status">
-            <div class="status-dot"></div>
-            <span>Local Engine Live</span>
-        </div>
     </header>
 
     <div class="workspace">
-        <!-- Sidebar Controls -->
         <div class="control-panel">
             <div class="panel-title">Document Hub</div>
             
             <div class="file-selector-wrapper">
                 <input type="file" id="pdf-file-handler" class="native-file-input" accept="application/pdf" />
-                <button class="custom-upload-trigger" tabindex="-1">
-                    <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+                <button class="custom-upload-trigger">
+                    <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
                     Upload Document
                 </button>
             </div>
 
-            <!-- Active file monitoring slot -->
             <div id="active-file-tracking" class="hidden">
-                <div class="panel-title" style="margin-bottom: 8px; font-size:11px;">Active Manifest</div>
+                <div class="panel-title" style="margin-bottom: 6px;">Active Manifest</div>
                 <div class="file-card">
                     <div class="file-meta-header">
                         <div class="pdf-icon-box">
-                            <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v1.25H7.5v-4.5H10c.83 0 1.5.67 1.5 1.5v.25zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5v-4.5H15c.83 0 1.5.67 1.5 1.5v1.5zm4-3H19v1h1.5V11H19v1.25h-1.5v-4.5h3v1.25zM9 9h1v1H9V9zm5.5 1.25h1v1.5h-1v-1.5zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
                         </div>
                         <div class="file-details">
                             <div id="manifest-name" class="file-name-text">document.pdf</div>
-                            <div id="manifest-size" class="file-size-text">0.00 MB</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Canvas Core Area -->
-        <div class="viewport-space" id="interactive-drop-zone">
+        <div class="viewport-space" id="viewer-viewport">
             
-            <!-- Default Landing Dropzone -->
             <div id="empty-state-view" class="dropzone-container">
-                <div class="dropzone-icon">
-                    <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                </div>
-                <div class="dropzone-main-text">Drag and drop your PDF here</div>
-                <div class="dropzone-sub-text">Processing is isolated completely locally. Your file contents never upload to or touch a remote server.</div>
+                <div class="dropzone-main-text">Upload or Tap to choose PDF</div>
+                <div class="dropzone-sub-text">Fully optimized for both Mobile screens and Desktop viewports.</div>
             </div>
 
-            <!-- Dynamic Target Frame -->
-            <iframe id="sandboxed-pdf-engine" class="pdf-frame-embed" title="Embedded PDF Engine Display"></iframe>
+            <div id="loading-state" class="hidden">
+                <div class="loader"></div>
+                <p style="margin-top:10px; color:var(--text-secondary); font-size:13px;">Processing pages...</p>
+            </div>
 
-        </div>
+            </div>
     </div>
 
     <script>
+        // Setup PDF.js Worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
         const fileInput = document.getElementById('pdf-file-handler');
-        const dropZone = document.getElementById('interactive-drop-zone');
+        const viewport = document.getElementById('viewer-viewport');
         const emptyState = document.getElementById('empty-state-view');
-        const pdfIframe = document.getElementById('sandboxed-pdf-engine');
+        const loadingState = document.getElementById('loading-state');
         const trackingWidget = document.getElementById('active-file-tracking');
-        
         const manifestName = document.getElementById('manifest-name');
-        const manifestSize = document.getElementById('manifest-size');
 
-        // Central Execution Logic
-        function renderLocalPDF(file) {
-            if (!file || file.type !== 'application/pdf') {
-                alert('Invalid payload. Please supply a valid document matching application/pdf framework.');
-                return;
-            }
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') return;
 
-            // Clean previous references to preserve memory allocation buffers
-            if (pdfIframe.src) {
-                URL.revokeObjectURL(pdfIframe.src);
-            }
-
-            // Parse structural metrics
             manifestName.textContent = file.name;
-            manifestSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
             
-            // Build local sandboxed object reference pointer
-            const objectSecureUrl = URL.createObjectURL(file);
+            // Clean previous sessions canvas
+            document.querySelectorAll('.pdf-page-canvas').forEach(el => el.remove());
             
-            // Swap display trees smoothly
+            // Show loaders
             emptyState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
             trackingWidget.classList.remove('hidden');
-            pdfIframe.style.display = 'block';
+
+            const fileReader = new FileReader();
+            fileReader.onload = async function() {
+                const typedarray = new Uint8Array(this.result);
+                
+                try {
+                    // Load the PDF Document via PDF.js core
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    loadingState.classList.add('hidden');
+
+                    // Loop through all pages and render
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        
+                        // Setup automatic scaling based on mobile viewport device width
+                        const viewportScale = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        canvas.className = 'pdf-page-canvas';
+                        const context = canvas.getContext('2d');
+                        
+                        canvas.height = viewportScale.height;
+                        canvas.width = viewportScale.width;
+                        
+                        const renderContext = {
+                            canvasContext: context,
+                            viewport: viewportScale
+                        };
+                        
+                        viewport.appendChild(canvas);
+                        await page.render(renderContext).promise;
+                    }
+                } catch (error) {
+                    alert("Error processing PDF: " + error.message);
+                    loadingState.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                }
+            };
             
-            // Render inside optimized native browser context
-            pdfIframe.src = objectSecureUrl;
-        }
-
-        // Connect Input Handlers
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                renderLocalPDF(e.target.files[0]);
-            }
+            fileReader.readAsArrayBuffer(file);
         });
-
-        // Drag & Drop Boundary Integrations
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                emptyState.classList.add('drag-over');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                emptyState.classList.remove('drag-over');
-            }, false);
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            const transferData = e.dataTransfer;
-            const operationalFiles = transferData.files;
-            
-            if (operationalFiles.length > 0) {
-                renderLocalPDF(operationalFiles[0]);
-            }
-        }, false);
     </script>
 </body>
 </html>
