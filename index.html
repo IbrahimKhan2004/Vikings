@@ -195,6 +195,8 @@
             background-color: var(--bg-amoled);
             scroll-behavior: smooth;
             padding-bottom: 80px; /* Spacer for menu overlay button */
+            -webkit-overflow-scrolling: touch;
+            will-change: transform;
         }
 
         /* Balanced Canvas Node Positioning */
@@ -205,6 +207,10 @@
             display: block;
             margin: 0 auto;
             background-color: #121212;
+            content-visibility: auto;
+            contain-intrinsic-size: 1000px;
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
 
         /* 3-Dot Floating Context Overlay System */
@@ -359,20 +365,31 @@
         const optHistory = document.getElementById('opt-trigger-history');
         const optClose = document.getElementById('opt-trigger-close');
 
-        let db;
+        let db = null;
         // Fix: Explicitly structured database initialization matching W3C specification framework
-        const dbRequest = indexedDB.open("NexusViewDB", 1);
-        dbRequest.onupgradeneeded = (e) => {
-            db = e.target.result;
-            if(!db.objectStoreNames.contains("pdf_history")) {
-                db.createObjectStore("pdf_history", { keyPath: "id", autoIncrement: true });
+        function initDB(callback) {
+            if (db) {
+                if (callback) callback();
+                return;
             }
-        };
-        dbRequest.onsuccess = (e) => {
-            db = e.target.result;
-            renderHistoryList();
-        };
-        dbRequest.onerror = () => { console.error("Database framework mapping crashed."); };
+            const dbRequest = indexedDB.open("NexusViewDB", 1);
+            dbRequest.onupgradeneeded = (e) => {
+                let databaseInstance = e.target.result;
+                if(!databaseInstance.objectStoreNames.contains("pdf_history")) {
+                    databaseInstance.createObjectStore("pdf_history", { keyPath: "id", autoIncrement: true });
+                }
+            };
+            dbRequest.onsuccess = (e) => {
+                db = e.target.result;
+                db.onversionchange = () => {
+                    db.close();
+                    db = null;
+                };
+                if (callback) callback();
+            };
+            dbRequest.onerror = () => { console.error("Database framework mapping crashed."); };
+        }
+        initDB(() => { renderHistoryList(); });
 
         // Toggle Floating Menu Context Flyout Sheet
         masterFab.addEventListener('click', (e) => {
@@ -423,11 +440,11 @@
                         
                         const deviceScreenWidth = window.innerWidth;
                         const dynamicScale = deviceScreenWidth / baseViewport.width;
-                        const optimizedViewport = page.getViewport({ scale: Math.max(dynamicScale, 1.8) });
+                        const optimizedViewport = page.getViewport({ scale: Math.max(dynamicScale, 1.5) });
 
                         const canvas = document.createElement('canvas');
                         canvas.className = 'pdf-page-canvas-node';
-                        const context = canvas.getContext('2d');
+                        const context = canvas.getContext('2d', { alpha: false, desynchronized: true });
                         
                         canvas.height = optimizedViewport.height;
                         canvas.width = optimizedViewport.width;
@@ -454,40 +471,53 @@
 
         // Memory Persistence Subsystem
         function storeInIndexedDB(blob, name) {
-            if (!db) return;
-            const transaction = db.transaction(["pdf_history"], "readwrite");
-            const store = transaction.objectStore("pdf_history");
+            initDB(() => {
+                if (!db) return;
+                try {
+                    const transaction = db.transaction(["pdf_history"], "readwrite");
+                    const store = transaction.objectStore("pdf_history");
 
-            store.getAll().onsuccess = (e) => {
-                let records = e.target.result;
-                const existingIndex = records.findIndex(r => r.name === name);
-                if(existingIndex !== -1) {
-                    store.delete(records[existingIndex].id);
+                    store.getAll().onsuccess = (e) => {
+                        let records = e.target.result;
+                        const existingIndex = records.findIndex(r => r.name === name);
+                        if(existingIndex !== -1) {
+                            store.delete(records[existingIndex].id);
+                        }
+                        store.add({ name: name, binaryData: blob, timestamp: Date.now() });
+                        if(records.length >= 10) store.delete(records[0].id);
+                        renderHistoryList();
+                    };
+                } catch (ex) {
+                    db = null;
+                    initDB(() => { storeInIndexedDB(blob, name); });
                 }
-                store.add({ name: name, binaryData: blob, timestamp: Date.now() });
-                if(records.length >= 10) store.delete(records[0].id);
-                renderHistoryList();
-            };
+            });
         }
 
         function renderHistoryList() {
-            if(!db) return;
-            const store = db.transaction(["pdf_history"], "readonly").objectStore("pdf_history");
-            store.getAll().onsuccess = (e) => {
-                const results = e.target.result.sort((a,b) => b.timestamp - a.timestamp);
-                if(results.length === 0) return;
+            initDB(() => {
+                if(!db) return;
+                try {
+                    const store = db.transaction(["pdf_history"], "readonly").objectStore("pdf_history");
+                    store.getAll().onsuccess = (e) => {
+                        const results = e.target.result.sort((a,b) => b.timestamp - a.timestamp);
+                        if(results.length === 0) return;
 
-                historyRenderRoot.innerHTML = '';
-                results.forEach(item => {
-                    const el = document.createElement('div');
-                    el.className = 'history-item';
-                    el.textContent = item.name;
-                    el.addEventListener('click', () => {
-                        processPDFBlob(item.binaryData, item.name, false);
-                    });
-                    historyRenderRoot.appendChild(el);
-                });
-            };
+                        historyRenderRoot.innerHTML = '';
+                        results.forEach(item => {
+                            const el = document.createElement('div');
+                            el.className = 'history-item';
+                            el.textContent = item.name;
+                            el.addEventListener('click', () => {
+                                processPDFBlob(item.binaryData, item.name, false);
+                            });
+                            historyRenderRoot.appendChild(el);
+                        });
+                    };
+                } catch (ex) {
+                    db = null;
+                }
+            });
         }
     </script>
 </body>
